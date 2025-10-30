@@ -179,6 +179,14 @@ QCefWidgetInternal::QCefWidgetInternal(QWidget *parent, const std::string &url_,
 	window = new QWindow();
 	window->setFlags(Qt::FramelessWindowHint);
 #endif
+	auto applicationInstance = static_cast<QApplication *>(QCoreApplication::instance());
+
+	connect(applicationInstance, &QGuiApplication::applicationStateChanged, this,
+		[this](Qt::ApplicationState state) {
+			bool requiresFocus = (state == Qt::ApplicationActive);
+
+			setBrowserFocus(requiresFocus);
+		});
 }
 
 QCefWidgetInternal::~QCefWidgetInternal()
@@ -231,6 +239,21 @@ void QCefWidgetInternal::closeBrowser()
 	}
 
 	cefBrowser = nullptr;
+}
+
+void QCefWidgetInternal::setBrowserFocus(bool hasFocus)
+{
+	if (!cefBrowser) {
+		return;
+	}
+
+	CefRefPtr<CefBrowserHost> host{cefBrowser->GetHost()};
+
+	if (!host) {
+		return;
+	}
+
+	host->SetFocus(hasFocus);
 }
 
 #ifdef __linux__
