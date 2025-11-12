@@ -178,12 +178,36 @@ QCefWidgetInternal::QCefWidgetInternal(QWidget *parent, const std::string &url_,
 #ifndef __APPLE__
 	window = new QWindow();
 	window->setFlags(Qt::FramelessWindowHint);
+	window->setObjectName("QCefWidgetInternalWindow");
+	window->installEventFilter(this);
 #endif
 }
 
 QCefWidgetInternal::~QCefWidgetInternal()
 {
 	closeBrowser();
+}
+
+bool QCefWidgetInternal::eventFilter(QObject *object, QEvent *event)
+{
+#ifdef __APPLE__
+	UNUSED_PARAMETER(object);
+	UNUSED_PARAMETER(event);
+
+	return true;
+#else
+	if (object != window || event->type() != QEvent::FocusIn || !cefBrowser) {
+		return true;
+	}
+
+	CefRefPtr<CefBrowserHost> host{cefBrowser->GetHost()};
+
+	if (host) {
+		host->SetFocus(hasFocus);
+	}
+
+	return true;
+#endif
 }
 
 void QCefWidgetInternal::closeBrowser()
