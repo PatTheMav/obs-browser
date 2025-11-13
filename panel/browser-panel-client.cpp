@@ -71,10 +71,8 @@ CefRefPtr<CefJSDialogHandler> QCefBrowserClient::GetJSDialogHandler()
 /* CefDisplayHandler */
 void QCefBrowserClient::OnTitleChange(CefRefPtr<CefBrowser> browser, const CefString &title)
 {
-	if (widget && widget->cefBrowser->IsSame(browser)) {
-		std::string str_title = title;
-		QString qt_title = QString::fromUtf8(str_title.c_str());
-		QMetaObject::invokeMethod(widget, "titleChanged", Q_ARG(QString, qt_title));
+	if (widget) {
+		widget->handleTitleChange(browser, title.ToString());
 	} else { /* handle popup title */
 		CefString newTitle = title;
 		if (title.compare("DevTools") == 0 && widget)
@@ -392,10 +390,17 @@ void QCefBrowserClient::OnLoadEnd(CefRefPtr<CefBrowser>, CefRefPtr<CefFrame> fra
 	if (!frame->IsMain())
 		return;
 
-	if (widget && !widget->script.empty())
-		frame->ExecuteJavaScript(widget->script, CefString(), 0);
-	else if (!script.empty())
-		frame->ExecuteJavaScript(script, CefString(), 0);
+	std::string scriptToExecute;
+
+	if (widget && !widget->getScript().empty()) {
+		scriptToExecute = widget->getScript();
+	} else if (!script.empty()) {
+		scriptToExecute = script;
+	}
+
+	if (!scriptToExecute.empty()) {
+		frame->ExecuteJavaScript(scriptToExecute, CefString(), 0);
+	}
 }
 
 bool QCefBrowserClient::OnJSDialog(CefRefPtr<CefBrowser>, const CefString &,

@@ -21,26 +21,34 @@ extern std::vector<PopupWhitelistInfo> forced_popups;
 
 /* ------------------------------------------------------------------------- */
 
+enum class QCefTaskResult {
+    Invalid,
+    Failure,
+    Success
+};
+
 class QCefWidgetInternal : public QCefWidget {
 	Q_OBJECT
-
+    
 private:
-	virtual bool eventFilter(QObject *object, QEvent *event) override;
+    CefRefPtr<CefBrowser> createBrowser(WId handle, QSize size);
+    
+    virtual bool eventFilter(QObject *object, QEvent *event) override;
 
-public:
-	QCefWidgetInternal(QWidget *parent, const std::string &url, CefRefPtr<CefRequestContext> rqc);
-	~QCefWidgetInternal();
+    bool allowAllPopups_ = false;
 
-	CefRefPtr<CefBrowser> cefBrowser;
-	std::string url;
-	std::string script;
-	CefRefPtr<CefRequestContext> rqc;
-	QTimer timer;
+    CefRefPtr<CefBrowser> cefBrowser_;
+    std::string url_;
+    std::string script_;
+    CefRefPtr<CefRequestContext> requestContext_;
 #ifndef __APPLE__
-	QPointer<QWindow> window;
-	QPointer<QWidget> container;
+    QPointer<QWindow> window_;
+    QPointer<QWidget> container_;
 #endif
-	bool allowAllPopups_ = false;
+    
+public:
+	QCefWidgetInternal(QWidget *parent, const std::string &url, CefRefPtr<CefRequestContext> requestContext);
+	~QCefWidgetInternal();
 
 	virtual void resizeEvent(QResizeEvent *event) override;
 	virtual void showEvent(QShowEvent *event) override;
@@ -53,18 +61,19 @@ public:
 	virtual void reloadPage() override;
 	virtual bool zoomPage(int direction) override;
 	virtual void executeJavaScript(const std::string &script) override;
-
+    
+    QCefTaskResult tryCreateBrowser();
 	void finishCloseBrowser();
-	void Resize();
+	void tryResize();
 
+    void handleTitleChange(CefRefPtr<CefBrowser> browser, const std::string &title);
+    
+    std::string getScript() const;
 #ifdef __linux__
 private:
 	bool needsDeleteXdndProxy = true;
 	void unsetToplevelXdndProxy();
 #endif
-
-public slots:
-	void Init();
 
 signals:
 	void readyToClose();
